@@ -49,7 +49,7 @@ README.md: You're here!
 1. **Clone the repository**:
 
    ```bash
-   git clone [https://github.com/your-actual-username/amazon-search-scraper.git](https://github.com/henrikkudesu/amazonSearchScraper)
+   git clone https://github.com/your-actual-username/amazon-search-scraper.git
    cd amazon-search-scraper
    ```
 
