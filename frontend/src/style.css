@@ -213,11 +213,51 @@ button:active {
 }
 
 footer {
+  margin-top: 4rem;
+  padding: 1.5rem 0;
+  background: linear-gradient(
+    to right,
+    rgba(255, 153, 0, 0.05),
+    rgba(255, 153, 0, 0.1),
+    rgba(255, 153, 0, 0.05)
+  );
+  border-top: 1px solid rgba(255, 153, 0, 0.2);
+  border-radius: var(--border-radius);
   text-align: center;
-  margin-top: 3rem;
-  padding-top: 1rem;
-  color: #666;
-  font-size: 0.9rem;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+footer p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+footer a {
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transition);
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 20px;
+}
+
+footer a:hover {
+  background-color: rgba(255, 153, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+footer svg {
+  transition: var(--transition);
+}
+
+footer a:hover svg {
+  transform: rotate(12deg);
 }
 
 /* Responsivity */
