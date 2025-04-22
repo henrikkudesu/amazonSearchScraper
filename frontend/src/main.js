@@ -12,6 +12,7 @@ let currentKeyword = '';
 let currentPage = 1;
 let isLoading = false;
 let allProductsLoaded = false;
+let nextPageUrl = null;
 
 // Hide load more button initially
 loadMoreContainer.style.display = "none";
@@ -25,6 +26,7 @@ keywordInput.addEventListener("keypress", (event) => {
 
 // Main search functionality
 searchBtn.addEventListener("click", async () => {
+  nextPageUrl = null;
   const keyword = keywordInput.value.trim();
   if (!keyword) {
     showError("Please enter a product keyword to search");
@@ -83,41 +85,65 @@ loadMoreBtn.addEventListener("click", async () => {
 async function fetchProducts(keyword, page, newSearch) {
   isLoading = true;
 
-  const res = await fetch(`http://localhost:3001/api/scrape?keyword=${encodeURIComponent(keyword)}&page=${page}`);
-
-  if (!res.ok) {
-    throw new Error(`Server responded with status: ${res.status}`);
+  // Use nextPageUrl se disponível e não for uma nova pesquisa
+  let url;
+  if (!newSearch && nextPageUrl) {
+    // Use a URL completa retornada pela API
+    url = `http://localhost:3001/api/scrape?url=${encodeURIComponent(nextPageUrl)}`;
+  } else {
+    // Primeira página ou nova pesquisa
+    url = `http://localhost:3001/api/scrape?keyword=${encodeURIComponent(keyword)}`;
   }
 
-  const data = await res.json();
+  loader.style.display = "flex";
 
-  if (!data.products || data.products.length === 0) {
-    if (newSearch) {
-      throw new Error("No products found for your search");
-    } else {
+  try {
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      throw new Error(`Server responded with status: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    if (!data.products || data.products.length === 0) {
+      if (newSearch) {
+        throw new Error("No products found for your search");
+      } else {
+        allProductsLoaded = true;
+        loadMoreBtn.textContent = "No More Products";
+        loadMoreBtn.disabled = true;
+        return;
+      }
+    }
+
+    // Armazene a URL da próxima página
+    nextPageUrl = data.pagination?.nextPageUrl || null;
+
+    // Atualize a página atual
+    currentPage = data.pagination?.currentPage || (newSearch ? 1 : currentPage + 1);
+
+    // Verifique se é a última página
+    if (data.pagination?.isLastPage || !nextPageUrl) {
       allProductsLoaded = true;
       loadMoreBtn.textContent = "No More Products";
       loadMoreBtn.disabled = true;
-      return;
     }
+
+    // Display products (append if loading more, replace if new search)
+    displayProducts(data.products, !newSearch);
+
+    // Show load more button if we got products and not the last page
+    if (data.products.length > 0 && !data.pagination?.isLastPage) {
+      loadMoreContainer.style.display = "flex";
+    }
+  } catch (err) {
+    console.error(err);
+    showError(err.message || "Failed to fetch data");
+  } finally {
+    loader.style.display = "none";
+    isLoading = false;
   }
-
-  // Display products (append if loading more, replace if new search)
-  displayProducts(data.products, !newSearch);
-
-  // Show load more button if we got products
-  if (data.products.length > 0) {
-    loadMoreContainer.style.display = "flex";
-  }
-
-  // If fewer products returned than expected, we might have reached the end
-  if (data.products.length < 10) {
-    allProductsLoaded = true;
-    loadMoreBtn.textContent = "No More Products";
-    loadMoreBtn.disabled = true;
-  }
-
-  isLoading = false;
 }
 
 /**

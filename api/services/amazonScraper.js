@@ -3,24 +3,32 @@ import { JSDOM } from 'jsdom';
 import { AMAZON_BASE_URL, AMAZON_HEADERS } from '../utils/constants.js';
 
 /**
- * Scrapes Amazon product listings for a given search keyword
+ * Scrapes Amazon product listings for a given search keyword or direct URL
  * @param {string} keyword - Search term to look for on Amazon
  * @param {number} page - Page number to scrape (defaults to 1)
- * @returns {Promise<Array>} - Array of product objects with title, rating, reviews, and image
+ * @param {string} directUrl - Optional direct URL to scrape
+ * @returns {Promise<Object>} - Object containing products array and pagination information
  */
-
-const scrapeAmazonProducts = async (keyword, page = 1) => {
+const scrapeAmazonProducts = async (keyword, page = 1, directUrl = null) => {
     try {
-        if (!keyword || typeof keyword !== 'string' || keyword.trim() === '') {
-            throw new Error('Invalid or empty search keyword');
+        let searchUrl;
+
+        if (directUrl) {
+            // If we have a direct URL, use it
+            searchUrl = directUrl;
+            console.log(`Fetching next page: ${directUrl}`);
+        } else {
+            // Otherwise, construct URL with keyword and page
+            if (!keyword || typeof keyword !== 'string' || keyword.trim() === '') {
+                throw new Error('Invalid or empty search keyword');
+            }
+
+            const pageParam = page > 1 ? `&page=${page}` : '';
+            searchUrl = `${AMAZON_BASE_URL}/s?k=${encodeURIComponent(keyword)}${pageParam}`;
+            console.log(`Searching products for: ${keyword} (Page ${page})`);
         }
 
-        const pageParam = page > 1 ? `&page=${page}` : '';
-        const searchUrl = `${AMAZON_BASE_URL}/s?k=${encodeURIComponent(keyword)}${pageParam}`;
         const headers = AMAZON_HEADERS;
-
-        console.log(`Searching products for: ${keyword} (Page ${page})`);
-
         const response = await axios.get(searchUrl, { headers });
 
         if (response.status !== 200) {
@@ -30,9 +38,8 @@ const scrapeAmazonProducts = async (keyword, page = 1) => {
         const dom = new JSDOM(response.data);
         const document = dom.window.document;
 
-        // These selectors may need adjustments if Amazon changes their structure
+        // Extract products
         const productElements = document.querySelectorAll('.s-result-item[data-component-type="s-search-result"]');
-
         console.log(`Found ${productElements.length} products to process`);
 
         const products = [];
@@ -55,7 +62,31 @@ const scrapeAmazonProducts = async (keyword, page = 1) => {
         });
 
         console.log(`Successfully processed ${products.length} products`);
-        return products;
+
+        // Extract pagination information
+        const isLastPage = document.querySelector('.a-last.a-disabled, .s-pagination-next.s-pagination-disabled') !== null;
+        let nextPageUrl = null;
+
+        if (!isLastPage) {
+            const nextPageElement = document.querySelector('.a-last a, .s-pagination-next');
+            if (nextPageElement && nextPageElement.getAttribute('href')) {
+                nextPageUrl = nextPageElement.getAttribute('href');
+
+                // Complete URL if it's a relative path
+                if (nextPageUrl && !nextPageUrl.startsWith('http')) {
+                    nextPageUrl = `${AMAZON_BASE_URL}${nextPageUrl}`;
+                }
+            }
+        }
+
+        return {
+            products,
+            pagination: {
+                isLastPage,
+                nextPageUrl,
+                currentPage: page
+            }
+        };
 
     } catch (error) {
         console.error(`Error scraping Amazon products: ${error.message}`);
