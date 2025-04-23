@@ -49,8 +49,8 @@ README.md: You're here!
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/your-actual-username/amazon-search-scraper.git
-   cd amazon-search-scraper
+   git clone https://github.com/henrikkudesu/amazonSearchScraper
+   cd amazonSearchScraper
    ```
 
 2. **Setup the Backend (API)**:
